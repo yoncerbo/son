@@ -32,10 +32,11 @@ typedef struct {
 #define DEBUGC(var) printf(STRINGIFY(var) "='%c'\n", var)
 #define DEBUGS(var) printf(STRINGIFY(var) "=\"%s\"\n", var)
 #define DEBUGX(var) printf(STRINGIFY(var) "=0x%x\n", var)
-#define DEBUGC(var) printf(STRINGIFY(var) "=%c\n", var)
 
 #define LOG(fmt, ...) \
   printf("[LOG] %s " __FILE__ ":" STRINGIFY(__LINE__) " " fmt, __func__, ##__VA_ARGS__)
+
+void report_error(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
 
 #endif
 

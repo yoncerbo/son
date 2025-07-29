@@ -6,9 +6,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "common.h"
+#include "common.c"
 #include "tokenizer.c"
-#include "tokenizer.h"
 
 int main(int argc, char *argv[]) {
   assert(argc == 2);
