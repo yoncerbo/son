@@ -8,5 +8,14 @@ build: src/main.c
 run: build
 	./out/main $(file)
 
+build-test: src/test.c
+	mkdir -p out
+	gcc ${CFLAGS} -o out/test src/test.c -I ./src/headers
+
+test: build-test
+	./out/test
+
+build-all: build build-test
+
 clean:
 	rm out -rf
