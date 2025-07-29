@@ -7,7 +7,9 @@
 #include <fcntl.h>
 
 #include "common.c"
+#include "parser.h"
 #include "tokenizer.c"
+#include "parser.c"
 
 int main(int argc, char *argv[]) {
   assert(argc == 2);
@@ -27,6 +29,11 @@ int main(int argc, char *argv[]) {
   Token *tokens = malloc(sizeof(*tokens) * MAX_TOKENS);
   tokenize(file, tokens);
   print_tokens(tokens);
+
+  printf("\nCodegen:\n");
+  Parser *p = malloc(sizeof(*p));
+  parse(file, tokens, p);
+  print_nodes(p);
 
   return 0;
 }

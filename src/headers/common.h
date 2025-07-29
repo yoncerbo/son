@@ -9,6 +9,7 @@ typedef struct {
 } Str;
 
 #define UNREACHABLE __builtin_unreachable();
+#define NORETURN __attribute__((noreturn))
 
 #define ANSI_RESET "\x1b[0m"
 #define ANSI_BOLD "\x1b[1m"
