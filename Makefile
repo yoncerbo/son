@@ -1,5 +1,5 @@
-CFLAGS = -std=c99 -O2 -g3 -Wall -Wextra -Wpedantic
-file = example.c
+CFLAGS = -std=c99 -O2 -g3 -Wall -Wextra
+file = example.sm
 
 build: src/main.c
 	mkdir -p out

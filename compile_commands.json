@@ -1,0 +1,22 @@
+[
+  {
+    "arguments": [
+      "/nix/store/67x7pknz0qa2j16x02idf0x98lpcspah-gcc-wrapper-14.3.0/bin/gcc",
+      "-c",
+      "-std=c99",
+      "-O2",
+      "-g3",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-I",
+      "./src/headers",
+      "-o",
+      "out/main",
+      "src/main.c"
+    ],
+    "directory": "/s/son",
+    "file": "/s/son/src/main.c",
+    "output": "/s/son/out/main"
+  }
+]
