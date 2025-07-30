@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "tokenizer.c"
 #include "parser.c"
+#include "tokenizer.h"
 
 int main(int argc, char *argv[]) {
   const char *source = "return 12;";
@@ -21,4 +22,24 @@ int main(int argc, char *argv[]) {
   assert(p->node_arr[value].value.i64 == 12);
 
   fprintf(stderr, "Tests finished succesfully\n");
+
+  source = "return 3 + 3 * 3;";
+  tokenize(source, tokens);
+  ret = parse(source, tokens, p);
+
+  assert(p->node_arr[ret].tag == NODE_RETURN);
+  assert(p->node_arr[ret].value.ret.predecessor == START_NODE);
+  value = p->node_arr[ret].value.ret.value;
+  assert(p->node_arr[value].tag = NODE_CONSTANT);
+  assert(p->node_arr[value].value.i64 == 12);
+
+  source = "return 3 * 3 + 3;";
+  tokenize(source, tokens);
+  ret = parse(source, tokens, p);
+
+  assert(p->node_arr[ret].tag == NODE_RETURN);
+  assert(p->node_arr[ret].value.ret.predecessor == START_NODE);
+  value = p->node_arr[ret].value.ret.value;
+  assert(p->node_arr[value].tag = NODE_CONSTANT);
+  assert(p->node_arr[value].value.i64 == 12);
 }

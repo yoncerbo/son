@@ -11,6 +11,10 @@ typedef enum {
   TOK_IDENT,
 
   TOK_SEMICOLON,
+  TOK_PLUS,
+  TOK_MINUS,
+  TOK_STAR,
+  TOK_SLASH,
 
 #define KEYWORDS_START TOK_RETURN
   TOK_RETURN,
@@ -21,6 +25,10 @@ typedef enum {
 
 TokenTag TOK_LOOKUP[256] = {
   [';'] = TOK_SEMICOLON,
+  ['+'] = TOK_PLUS,
+  ['-'] = TOK_MINUS,
+  ['*'] = TOK_STAR,
+  ['/'] = TOK_SLASH,
 };
 
 // NOTE: using array intilizers, to not update them
@@ -31,6 +39,10 @@ const char *TOK_NAMES[TOK_COUNT] = {
   [TOK_RETURN] = "return",
   [TOK_DECIMAL] = "<decimal>",
   [TOK_SEMICOLON] = ";",
+  [TOK_PLUS] = "+",
+  [TOK_MINUS] = "-",
+  [TOK_STAR] = "*",
+  [TOK_SLASH] = "/",
 };
 
 Str KEYWORDS[KEYWORDS_COUNT] = {

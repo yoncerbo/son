@@ -7,6 +7,13 @@
 typedef uint16_t NodeId;
 typedef uint16_t LinkId;
 
+typedef enum {
+  TYPE_BOT, // ALL, default
+  TYPE_TOP, // ANY
+#define SIMPLE_TYPE_COUNT TYPE_INT
+  TYPE_INT,
+} TypeTag;
+
 // NOTE: for now a linked list, as
 // I don't really know what the requirements
 // are gonna be.
@@ -28,18 +35,25 @@ typedef enum {
 
   // Data nodes
   NODE_CONSTANT, // in: start node
+#define NODE_BINARY_START NODE_ADD
   NODE_ADD,
   NODE_SUB,
   NODE_MUL,
   NODE_DIV,
   NODE_MINUS,
+#define NODE_BINARY_COUNT (NODE_COUNT - NODE_ADD)
+  NODE_COUNT
 } NodeTag;
 
 const char *NODE_NAME[] = {
   [NODE_START] = "start",
   [NODE_RETURN] = "return",
-
   [NODE_CONSTANT] = "const",
+  [NODE_ADD] = "add",
+  [NODE_SUB] = "sub",
+  [NODE_MUL] = "mul",
+  [NODE_DIV] = "div",
+  [NODE_MINUS] = "minus",
 };
 
 typedef union {
@@ -49,12 +63,20 @@ typedef union {
     NodeId predecessor;
     NodeId value;
   } ret;
+  struct NodeUnary {
+    NodeId node;
+  } unary;
+  struct NodeBinary {
+    NodeId left;
+    NodeId right;
+  } binary;
 } NodeValue;
 
 typedef struct {
   NodeTag tag;
   NodeValue value;
   LinkId outputs;
+  TypeTag type;
 } Node;
 
 typedef struct {
