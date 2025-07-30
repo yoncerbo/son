@@ -28,6 +28,11 @@ typedef enum {
 
   // Data nodes
   NODE_CONSTANT, // in: start node
+  NODE_ADD,
+  NODE_SUB,
+  NODE_MUL,
+  NODE_DIV,
+  NODE_MINUS,
 } NodeTag;
 
 const char *NODE_NAME[] = {
@@ -49,7 +54,6 @@ typedef union {
 typedef struct {
   NodeTag tag;
   NodeValue value;
-  LinkId inputs;
   LinkId outputs;
 } Node;
 

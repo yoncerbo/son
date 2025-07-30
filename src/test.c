@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "common.c"
@@ -14,13 +15,10 @@ int main(int argc, char *argv[]) {
   NodeId ret = parse(source, tokens, p);
 
   assert(p->node_arr[ret].tag == NODE_RETURN);
-  LinkId in = p->node_arr[ret].inputs;
-  assert(in);
-  NodeId node = p->link_arr[in].node;
-  assert(p->node_arr[node].tag == NODE_CONSTANT);
-  in = p->link_arr[in].next;
-  assert(in);
-  assert(p->link_arr[in].node == START_NODE);
-  in = p->link_arr[in].next;
-  assert(in == NULL_LINK);
+  assert(p->node_arr[ret].value.ret.predecessor == START_NODE);
+  NodeId value = p->node_arr[ret].value.ret.value;
+  assert(p->node_arr[value].tag = NODE_CONSTANT);
+  assert(p->node_arr[value].value.i64 == 12);
+
+  fprintf(stderr, "Tests finished succesfully\n");
 }

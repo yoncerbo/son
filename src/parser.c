@@ -18,20 +18,12 @@ NodeId Parser_create_node(Parser *p, Node node) {
   return id;
 }
 
-void Parser_add_node_input(Parser *p, NodeId node, NodeId input) {
-  assert(p->link_len + 1 < MAX_LINKS);
-
-  // add input to node
+void Parser_add_node_output(Parser *p, NodeId node, NodeId output) {
+  assert(p->link_len < MAX_LINKS);
   LinkId id = p->link_len++;
-  LinkId prev = p->node_arr[node].inputs;
-  p->link_arr[id] = (Link){ prev, input };
-  p->node_arr[node].inputs = id;
-
-  // add ouptut to input
-  id = p->link_len++;
-  prev = p->node_arr[input].outputs;
-  p->link_arr[id] = (Link){ prev, node };
-  p->node_arr[input].outputs = id;
+  LinkId prev = p->node_arr[node].outputs;
+  p->link_arr[id] = (Link){ prev, output };
+  p->node_arr[node].outputs = id;
 } 
 
 NodeId Parser_parse_expression(Parser *p) {
@@ -47,7 +39,7 @@ NodeId Parser_parse_expression(Parser *p) {
     .tag = NODE_CONSTANT,
     .value.i64 = number,
   });
-  Parser_add_node_input(p, node, START_NODE);
+  Parser_add_node_output(p, START_NODE, node);
   return node;
 }
 
@@ -61,8 +53,8 @@ NodeId Parser_parse_statement(Parser *p) {
     .value.ret.predecessor = START_NODE,
     .value.ret.value = value,
   });
-  Parser_add_node_input(p, node, START_NODE);
-  Parser_add_node_input(p, node, value);
+  Parser_add_node_output(p, START_NODE, node);
+  Parser_add_node_output(p, value, node);
   return node;
 }
 
@@ -82,15 +74,19 @@ void print_nodes(const Parser *p) {
   for (int i = 0; i < p->node_len; ++i) {
     Node node = p->node_arr[i];
     printf("% 2d %s [", i, NODE_NAME[node.tag]);
-    LinkId id = node.inputs;
-    while (id) {
-      printf("%d", p->link_arr[id].node);
-      if (!p->link_arr[id].next) break;
-      putchar(' ');
-      id = p->link_arr[id].next;
+    switch (node.tag) {
+      case NODE_CONSTANT:
+        printf("%d", START_NODE);
+        break;
+      case NODE_RETURN:
+        printf("%d ", node.value.ret.predecessor);
+        printf("%d", node.value.ret.value);
+        break;
+      case NODE_START:
+      default:
     }
     printf("] [");
-    id = node.outputs;
+    LinkId id = node.outputs;
     while (id) {
       printf("%d", p->link_arr[id].node);
       if (!p->link_arr[id].next) break;
