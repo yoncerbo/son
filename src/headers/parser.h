@@ -6,6 +6,7 @@
 
 typedef uint16_t NodeId;
 typedef uint16_t LinkId;
+typedef uint16_t VarId;
 
 typedef enum {
   TYPE_BOT, // ALL, default
@@ -29,6 +30,9 @@ typedef struct {
 
 typedef enum {
   NODE_NONE,
+
+  NODE_SCOPE,
+
   // Control nodes
   NODE_START,
   NODE_RETURN, // in: cnode predecessor, dnode value
@@ -46,6 +50,8 @@ typedef enum {
 } NodeTag;
 
 const char *NODE_NAME[] = {
+  [NODE_NONE] = "none",
+  [NODE_SCOPE] = "scope",
   [NODE_START] = "start",
   [NODE_RETURN] = "return",
   [NODE_CONSTANT] = "const",
@@ -55,6 +61,12 @@ const char *NODE_NAME[] = {
   [NODE_DIV] = "div",
   [NODE_MINUS] = "minus",
 };
+
+typedef struct {
+  uint32_t start;
+  uint16_t len;
+  NodeId node;
+} Var;
 
 typedef union {
   int64_t i64;
@@ -70,12 +82,21 @@ typedef union {
     NodeId left;
     NodeId right;
   } binary;
+  struct NodeBlock {
+    NodeId first_child;
+  };
+  struct NodeScope {
+    VarId var_start;
+    uint16_t var_count;
+    NodeId prev_scope;
+  } scope;
 } NodeValue;
 
 typedef struct {
   NodeTag tag;
   NodeValue value;
   LinkId outputs;
+  NodeId next_sibling; // used in blocks
   TypeTag type;
 } Node;
 
@@ -86,12 +107,17 @@ typedef struct {
 #define NULL_LINK ((LinkId)0)
 #define MAX_LINKS 512
   Link link_arr[MAX_LINKS];
+#define MAX_VAR_DEPTH 256
+  Var var_arr[MAX_VAR_DEPTH];
 
   const char *source;
   const Token *token_arr;
   uint16_t node_len;
   uint16_t link_len;
+  uint16_t var_len;
+  uint16_t scope_len;
   uint16_t pos;
+  NodeId scope;
 } Parser;
 
 NodeId parse(const char *source, const Token *tokens, Parser *p);

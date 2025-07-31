@@ -15,6 +15,12 @@ void tokenize(const char *source, Token token_arr[MAX_TOKENS]) {
     while (*ch == ' ' || *ch == '\n' || *ch == '\t') ch++;
     if (!*ch) break;
 
+    if (*ch == '/' && ch[1] == '/') {
+      ch += 2;
+      while (*ch != '\n' && *ch != 0) ch++;
+      continue;
+    }
+
     TokenTag tt = TOK_LOOKUP[(uint8_t)*ch];
     if (tt) {
       assert(tokens_len < MAX_TOKENS);

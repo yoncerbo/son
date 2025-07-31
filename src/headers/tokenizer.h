@@ -11,6 +11,11 @@ typedef enum {
   TOK_IDENT,
 
   TOK_SEMICOLON,
+  TOK_LBRACE,
+  TOK_RBRACE,
+  TOK_LPAREN,
+  TOK_RPAREN,
+  TOK_EQ,
   TOK_PLUS,
   TOK_MINUS,
   TOK_STAR,
@@ -18,6 +23,7 @@ typedef enum {
 
 #define KEYWORDS_START TOK_RETURN
   TOK_RETURN,
+  TOK_INT,
 #define KEYWORDS_COUNT (TOK_COUNT - TOK_RETURN)
   
   TOK_COUNT,
@@ -29,6 +35,11 @@ TokenTag TOK_LOOKUP[256] = {
   ['-'] = TOK_MINUS,
   ['*'] = TOK_STAR,
   ['/'] = TOK_SLASH,
+  ['{'] = TOK_LBRACE,
+  ['}'] = TOK_RBRACE,
+  ['='] = TOK_EQ,
+  ['('] = TOK_LPAREN,
+  [')'] = TOK_RPAREN,
 };
 
 // NOTE: using array intilizers, to not update them
@@ -43,10 +54,17 @@ const char *TOK_NAMES[TOK_COUNT] = {
   [TOK_MINUS] = "-",
   [TOK_STAR] = "*",
   [TOK_SLASH] = "/",
+  [TOK_LBRACE] = "{",
+  [TOK_RBRACE] = "}",
+  [TOK_INT] = "int",
+  [TOK_EQ] = "=",
+  [TOK_LPAREN] = "(",
+  [TOK_RPAREN] = ")",
 };
 
 Str KEYWORDS[KEYWORDS_COUNT] = {
   [TOK_RETURN - KEYWORDS_START] = STR("return"),
+  [TOK_INT - KEYWORDS_START] = STR("int"),
 };
 
 typedef struct {
