@@ -7,23 +7,33 @@
 typedef enum {
   TOK_NONE,
 
-  TOK_DECIMAL,
-  TOK_IDENT,
-
+  TOK_EQ,
+  TOK_BANG,
+  TOK_LT,
+  TOK_GT,
+#define TOK_TWO_CHAR_COUNT TOK_DEQ
+  TOK_DEQ,
+  TOK_NE,
+  TOK_GE,
+  TOK_LE,
   TOK_SEMICOLON,
   TOK_LBRACE,
   TOK_RBRACE,
   TOK_LPAREN,
   TOK_RPAREN,
-  TOK_EQ,
   TOK_PLUS,
   TOK_MINUS,
   TOK_STAR,
   TOK_SLASH,
 
+  TOK_DECIMAL,
+  TOK_IDENT,
+
 #define KEYWORDS_START TOK_RETURN
   TOK_RETURN,
   TOK_INT,
+  TOK_TRUE,
+  TOK_FALSE,
 #define KEYWORDS_COUNT (TOK_COUNT - TOK_RETURN)
   
   TOK_COUNT,
@@ -40,6 +50,21 @@ TokenTag TOK_LOOKUP[256] = {
   ['='] = TOK_EQ,
   ['('] = TOK_LPAREN,
   [')'] = TOK_RPAREN,
+  ['!'] = TOK_BANG,
+  ['<'] = TOK_LT,
+  ['>'] = TOK_GT,
+};
+
+typedef struct {
+  char ch;
+  TokenTag tag;
+} TokenOpt;
+
+TokenOpt TOK_SECOND_CHAR[TOK_TWO_CHAR_COUNT] = {
+  [TOK_EQ] = { '=', TOK_DEQ },
+  [TOK_BANG] = { '=', TOK_NE },
+  [TOK_LT] = { '=', TOK_LE },
+  [TOK_GT] = { '=', TOK_GE },
 };
 
 // NOTE: using array intilizers, to not update them
@@ -60,11 +85,22 @@ const char *TOK_NAMES[TOK_COUNT] = {
   [TOK_EQ] = "=",
   [TOK_LPAREN] = "(",
   [TOK_RPAREN] = ")",
+  [TOK_BANG] = "!",
+  [TOK_LT] = "<",
+  [TOK_GT] = ">",
+  [TOK_DEQ] = "==",
+  [TOK_NE] = "!=",
+  [TOK_GE] = ">=",
+  [TOK_LE] = "<=",
+  [TOK_TRUE] = "true",
+  [TOK_FALSE] = "false",
 };
 
 Str KEYWORDS[KEYWORDS_COUNT] = {
   [TOK_RETURN - KEYWORDS_START] = STR("return"),
   [TOK_INT - KEYWORDS_START] = STR("int"),
+  [TOK_TRUE - KEYWORDS_START] = STR("true"),
+  [TOK_FALSE - KEYWORDS_START] = STR("false"),
 };
 
 typedef struct {

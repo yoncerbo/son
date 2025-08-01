@@ -3,6 +3,7 @@
 
 #include "tokenizer.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef uint16_t NodeId;
 typedef uint16_t LinkId;
@@ -45,6 +46,13 @@ typedef enum {
   NODE_MUL,
   NODE_DIV,
   NODE_MINUS,
+  NODE_NOT,
+  NODE_EQ,
+  NODE_NE,
+  NODE_LT,
+  NODE_LE,
+  NODE_GT,
+  NODE_GE,
 #define NODE_BINARY_COUNT (NODE_COUNT - NODE_ADD)
   NODE_COUNT
 } NodeTag;
@@ -60,6 +68,7 @@ const char *NODE_NAME[] = {
   [NODE_MUL] = "mul",
   [NODE_DIV] = "div",
   [NODE_MINUS] = "minus",
+  [NODE_NOT] = "not",
 };
 
 typedef struct {
@@ -70,6 +79,7 @@ typedef struct {
 
 typedef union {
   int64_t i64;
+  bool boolean;
   // Is it necessary? Can't we just use inputs?
   struct NodeReturn {
     NodeId predecessor;

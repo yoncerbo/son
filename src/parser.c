@@ -10,6 +10,12 @@ uint8_t PRECEDENCE[NODE_BINARY_COUNT] = {
   [NODE_DIV - NODE_BINARY_START] = 10,
   [NODE_ADD - NODE_BINARY_START] = 9,
   [NODE_SUB - NODE_BINARY_START] = 9,
+  [NODE_EQ - NODE_BINARY_START] = 7,
+  [NODE_NE - NODE_BINARY_START] = 7,
+  [NODE_LT - NODE_BINARY_START] = 7,
+  [NODE_LE - NODE_BINARY_START] = 7,
+  [NODE_GT - NODE_BINARY_START] = 7,
+  [NODE_GE - NODE_BINARY_START] = 7,
 };
 
 NodeId Parser_create_node(Parser *p, Node node);
@@ -177,6 +183,20 @@ NodeId Parser_parse_atom(Parser *p) {
   Token tok = p->token_arr[p->pos++];
   NodeId node;
   switch (tok.tag) {
+    case TOK_TRUE:
+      node = Parser_create_node(p, (Node){
+        .tag = NODE_CONSTANT,
+        .type = TYPE_INT,
+        .value.boolean = true,
+      });
+      break;
+    case TOK_FALSE:
+      node = Parser_create_node(p, (Node){
+        .tag = NODE_CONSTANT,
+        .type = TYPE_INT,
+        .value.boolean = false,
+      });
+      break;
     case TOK_IDENT:
       VarId var = Parser_resolve_var(p, tok.start, tok.len);
       node = p->var_arr[var].node;
@@ -206,27 +226,34 @@ NodeId Parser_parse_atom(Parser *p) {
 
 NodeId Parser_parse_unary(Parser *p) {
   Token tok = p->token_arr[p->pos];
-  NodeTag nt;
+  NodeTag op;
   switch (tok.tag) {
-    case TOK_MINUS:
-      nt = NODE_MINUS;
-      break;
-    default:
-      return Parser_parse_atom(p);
+    case TOK_MINUS: op = NODE_MINUS; break;
+    case TOK_BANG: op = NODE_NOT; break;
+    default: return Parser_parse_atom(p);
   }
   p->pos++;
   NodeId inner = Parser_parse_unary(p);
-  // Fold the constant
-  if (p->node_arr[inner].tag == NODE_CONSTANT) {
-    // Shouldn't be used by anything
-    assert(p->node_arr[inner].outputs == NULL_LINK);
-    int64_t value = p->node_arr[inner].value.i64;
-    p->node_arr[inner].value.i64 = -value;
-    return inner;
+  if (p->node_arr[inner].tag != NODE_CONSTANT) {
+    NodeId node = Parser_create_node(p, (Node){
+      .tag = op,
+      .value.unary.node = inner,
+      .type = TYPE_INT,
+    });
+    Parser_add_node_output(p, node, inner);
+    return node;
+  }
+  int64_t value = p->node_arr[inner].value.i64;
+  Parser_remove_node(p, inner);
+  switch (op) {
+    case NODE_MINUS: value = -value; break;
+    case NODE_NOT: value = !value; break;
+    default: assert(0);
   }
   NodeId node = Parser_create_node(p, (Node){
-    .tag = nt,
-    .value.unary.node = inner,
+    .tag = NODE_CONSTANT,
+    .value.i64 = value,
+    .type = TYPE_INT,
   });
   Parser_add_node_output(p, node, inner);
   return node;
@@ -244,6 +271,12 @@ NodeId Parser_parse_binary(Parser *p, uint8_t prec) {
       case TOK_MINUS: op = NODE_SUB; break;
       case TOK_STAR: op = NODE_MUL; break;
       case TOK_SLASH: op = NODE_DIV; break;
+      case TOK_DEQ: op = NODE_EQ; break;
+      case TOK_NE: op = NODE_NE; break;
+      case TOK_LT: op = NODE_LT; break;
+      case TOK_LE: op = NODE_LE; break;
+      case TOK_GT: op = NODE_GT; break;
+      case TOK_GE: op = NODE_GE; break;
       default: return left;
     }
     new_prec = PRECEDENCE[op - NODE_BINARY_START];
@@ -256,13 +289,14 @@ NodeId Parser_parse_binary(Parser *p, uint8_t prec) {
         .tag = op,
         .value.binary.left = left,
         .value.binary.right = right,
+        .type = TYPE_INT,
       });
       Parser_add_node_output(p, node, left);
       Parser_add_node_output(p, node, right);
       continue;
     }
-    uint64_t l = p->node_arr[left].value.i64;
-    uint64_t r = p->node_arr[right].value.i64;
+    int64_t l = p->node_arr[left].value.i64;
+    int64_t r = p->node_arr[right].value.i64;
     Parser_remove_node(p, right);
     Parser_remove_node(p, left);
     switch (op) {
@@ -270,11 +304,18 @@ NodeId Parser_parse_binary(Parser *p, uint8_t prec) {
       case NODE_SUB: l -= r; break;
       case NODE_MUL: l *= r; break;
       case NODE_DIV: l /= r; break;
+      case NODE_EQ: l = l == r; break;
+      case NODE_NE: l = l != r; break;
+      case NODE_GE: l = l >= r; break;
+      case NODE_GT: l = l > r; break;
+      case NODE_LE: l = l <= r; break;
+      case NODE_LT: l = l < r; break;
       default: assert(0);
     }
     left = Parser_create_node(p, (Node){
       .tag = NODE_CONSTANT,
       .value.i64 = l,
+      .type = TYPE_INT,
     });
   }
   return left;

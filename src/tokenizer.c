@@ -22,6 +22,17 @@ void tokenize(const char *source, Token token_arr[MAX_TOKENS]) {
     }
 
     TokenTag tt = TOK_LOOKUP[(uint8_t)*ch];
+    if (tt && tt < TOK_TWO_CHAR_COUNT) {
+      assert(TOK_SECOND_CHAR[tt].tag);
+      if (ch[1] == TOK_SECOND_CHAR[tt].ch) {
+        assert(tokens_len < MAX_TOKENS);
+        tt = TOK_SECOND_CHAR[tt].tag;
+        token_arr[tokens_len++] = (Token){ tt, 2, ch - source };
+        ch += 2;
+        continue;
+      }
+    }
+
     if (tt) {
       assert(tokens_len < MAX_TOKENS);
       token_arr[tokens_len++] = (Token){ tt, 1, ch - source };
