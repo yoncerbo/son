@@ -20,6 +20,10 @@ build-test: src/test.c
 	mkdir -p out
 	gcc ${CFLAGS} -o out/test src/test.c -I ./src/headers
 
+graph: run
+	dot -Tpng out/graph.dot -o out/graph.png
+	swayimg out/graph.png
+
 test: build-test
 	./out/test
 

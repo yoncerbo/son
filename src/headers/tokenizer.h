@@ -34,6 +34,10 @@ typedef enum {
   TOK_INT,
   TOK_TRUE,
   TOK_FALSE,
+  TOK_IF,
+  TOK_ELSE,
+  // Debug keywords
+  // TODO: maybe add special flag for them
 #define KEYWORDS_COUNT (TOK_COUNT - TOK_RETURN)
   
   TOK_COUNT,
@@ -94,6 +98,8 @@ const char *TOK_NAMES[TOK_COUNT] = {
   [TOK_LE] = "<=",
   [TOK_TRUE] = "true",
   [TOK_FALSE] = "false",
+  [TOK_IF] = "if",
+  [TOK_ELSE] = "else",
 };
 
 Str KEYWORDS[KEYWORDS_COUNT] = {
@@ -101,6 +107,8 @@ Str KEYWORDS[KEYWORDS_COUNT] = {
   [TOK_INT - KEYWORDS_START] = STR("int"),
   [TOK_TRUE - KEYWORDS_START] = STR("true"),
   [TOK_FALSE - KEYWORDS_START] = STR("false"),
+  [TOK_IF - KEYWORDS_START] = STR("if"),
+  [TOK_ELSE - KEYWORDS_START] = STR("else"),
 };
 
 typedef struct {

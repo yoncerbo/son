@@ -11,6 +11,7 @@
       packages = with pkgs; [
         bear
         gnumake
+        graphviz
       ];
     };
   };

@@ -9,11 +9,15 @@ typedef uint16_t NodeId;
 typedef uint16_t LinkId;
 typedef uint16_t VarId;
 
+const char *GRAPH_FILENAME = "out/graph.dot";
+
 typedef enum {
-  TYPE_BOT, // ALL, default
+  TYPE_BOT, // ALL, empty type, default
   TYPE_TOP, // ANY
-#define SIMPLE_TYPE_COUNT TYPE_INT
   TYPE_INT,
+  TYPE_INT_BOT,
+  TYPE_INT_TOP,
+  TYPE_TUPLE,
 } TypeTag;
 
 // NOTE: for now a linked list, as
@@ -36,9 +40,15 @@ typedef enum {
 
   // Control nodes
   NODE_START,
+  NODE_STOP,
   NODE_RETURN, // in: cnode predecessor, dnode value
+  NODE_REGION,
+  NODE_IF,
+  NODE_PROJ,
 
+#define DATA_NODES_START NODE_PHI
   // Data nodes
+  NODE_PHI,
   NODE_CONSTANT, // in: start node
 #define NODE_BINARY_START NODE_ADD
   NODE_ADD,
@@ -69,6 +79,18 @@ const char *NODE_NAME[] = {
   [NODE_DIV] = "div",
   [NODE_MINUS] = "minus",
   [NODE_NOT] = "not",
+  [NODE_REGION] = "region",
+  [NODE_IF] = "if",
+  [NODE_PHI] = "phi",
+  [NODE_PROJ] = "proj",
+  [NODE_EQ] = "eq",
+  [NODE_NE] = "ne",
+  [NODE_GT] = "gt",
+  [NODE_GE] = "ge",
+  [NODE_LT] = "lt",
+  [NODE_LE] = "le",
+  [NODE_NOT] = "not",
+  [NODE_STOP] = "stop",
 };
 
 typedef struct {
@@ -92,15 +114,38 @@ typedef union {
     NodeId left;
     NodeId right;
   } binary;
-  struct NodeBlock {
-    NodeId first_child;
-  };
   struct NodeScope {
     VarId var_start;
     uint16_t var_count;
     NodeId prev_scope;
+    NodeId ctrl;
   } scope;
+  struct NodeIf {
+    NodeId ctrl;
+    NodeId cond;
+  } if_;
+  struct NodeBlock {
+    NodeId next_block;
+  } block;
+  struct NodeProj {
+    uint16_t select;
+    NodeId ctrl;
+  } proj;
+  struct NodeRegion {
+    NodeId left_block;
+    NodeId right_block;
+  } region;
+  struct NodePhi {
+    NodeId ctrl;
+    NodeId left;
+    NodeId right;
+  } phi;
 } NodeValue;
+
+typedef struct {
+  TypeTag tag;
+  uint16_t elem_start;
+} Type;
 
 typedef struct {
   NodeTag tag;
@@ -111,7 +156,9 @@ typedef struct {
 } Node;
 
 typedef struct {
-#define START_NODE ((NodeId)0)
+#define NULL_NODE ((NodeId)0)
+#define START_NODE ((NodeId)1)
+#define STOP_NODE ((NodeId)2)
 #define MAX_NODES 256
   Node node_arr[MAX_NODES];
 #define NULL_LINK ((LinkId)0)
@@ -119,13 +166,18 @@ typedef struct {
   Link link_arr[MAX_LINKS];
 #define MAX_VAR_DEPTH 256
   Var var_arr[MAX_VAR_DEPTH];
+#define MAX_TYPES 256
+  Type type_arr[MAX_TYPES];
+  char filename_buffer[256];
 
   const char *source;
   const Token *token_arr;
   uint16_t node_len;
   uint16_t link_len;
   uint16_t var_len;
+  uint16_t var_offset;
   uint16_t scope_len;
+  uint16_t type_len;
   uint16_t pos;
   NodeId scope;
 } Parser;

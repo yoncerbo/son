@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "graphviz.c"
 #include "common.c"
 #include "parser.h"
 #include "tokenizer.c"
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
   struct stat st;
   assert(fstat(fd, &st) >= 0);
 
-  char *file = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+  const char *file = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
   assert(file != MAP_FAILED);
 
   printf("\nTokenizing:\n");

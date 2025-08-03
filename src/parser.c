@@ -3,7 +3,11 @@
 #include "tokenizer.h"
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+
+const Str GRAPH_BUILTIN_NAME = STR("graph");
+const Str PRINT_AST_BUILTIN_NAME = STR("nodes");
 
 uint8_t PRECEDENCE[NODE_BINARY_COUNT] = {
   [NODE_MUL - NODE_BINARY_START] = 10,
@@ -23,7 +27,10 @@ void Parser_add_node_output(Parser *p, NodeId user, NodeId used);
 void Parser_remove_node(Parser *p, NodeId id);
 NodeId Parser_parse_expression(Parser *p);
 
+void print_nodes(const Parser *p);
+
 void Parser_remove_output_node(Parser *p, NodeId user, NodeId used) {
+  if (!user || !used) return;
   LinkId prev = 0;
   LinkId link = p->node_arr[used].outputs;
   while (link) {
@@ -39,6 +46,7 @@ void Parser_remove_output_node(Parser *p, NodeId user, NodeId used) {
     return;
   }
   assert(0);
+  printf("bad %d\n", used);
 }
 
 // Removes node only if it's unused
@@ -64,12 +72,17 @@ void Parser_remove_node(Parser *p, NodeId id) {
       Parser_remove_output_node(p, node.value.binary.left, id);
       Parser_remove_output_node(p, node.value.binary.right, id);
       break;
+    case NODE_PHI:
+      Parser_remove_output_node(p, node.value.phi.ctrl, id);
+      Parser_remove_output_node(p, node.value.phi.left, id);
+      Parser_remove_output_node(p, node.value.phi.right, id);
+      break;
     case NODE_SCOPE:
       // NOTE: you can only remove top most scope
-      assert(id == p->scope);
+      uint16_t var_start = node.value.scope.var_start;
       uint16_t var_count = node.value.scope.var_count;
       for (int i = 0; i < var_count; i++) {
-        Var entry = p->var_arr[p->var_len - i - 1];
+        Var entry = p->var_arr[var_start + i];
         Parser_remove_output_node(p, id, entry.node);
       }
       break;
@@ -86,6 +99,7 @@ void Parser_push_scope(Parser *p) {
     .value.scope.var_start = p->var_len,
     .value.scope.var_count = 0,
     .value.scope.prev_scope = p->scope,
+    .value.scope.ctrl = 0,
   });
   p->scope = id;
 }
@@ -98,6 +112,28 @@ void Parser_pop_scope(Parser *p) {
   Parser_remove_node(p, prev);
   p->var_len -= p->node_arr[p->scope].value.scope.var_count;
   p->scope = p->node_arr[p->scope].value.scope.prev_scope;
+}
+
+void Parser_update_ctrl(Parser *p, NodeId new_ctrl) {
+  NodeId scope = p->scope;
+  while (scope) {
+    NodeId ctrl = p->node_arr[scope].value.scope.ctrl;
+    if (ctrl) {
+      p->node_arr[scope].value.scope.ctrl = new_ctrl;
+      return;
+    }
+    scope = p->node_arr[scope].value.scope.prev_scope;
+  }
+}
+
+NodeId Parser_resolve_ctrl(Parser *p) {
+  NodeId scope = p->scope;
+  while (scope) {
+    NodeId ctrl = p->node_arr[scope].value.scope.ctrl;
+    if (ctrl) return ctrl;
+    scope = p->node_arr[scope].value.scope.prev_scope;
+  }
+  return 0;
 }
 
 VarId Parser_push_var(Parser *p, uint32_t start, uint16_t len, NodeId node) {
@@ -155,6 +191,64 @@ var_found:
   Parser_remove_output_node(p, scope, p->var_arr[id].node);
   Parser_add_node_output(p, scope, new_value);
   p->var_arr[id].node = new_value;
+}
+
+NodeId Parser_duplicate_scopes(Parser *p, uint16_t offset) {
+  NodeId scope = p->scope;
+  NodeId ret = 0;
+  while (scope) {
+    Node node = p->node_arr[scope];
+    uint16_t new_start = node.value.scope.var_start + offset;
+    uint16_t var_count = node.value.scope.var_count;
+    node.value.scope.var_start += offset;
+    NodeId new_scope = Parser_create_node(p, node);
+    if (!ret) ret = new_scope;
+
+    uint16_t var_end = new_start + var_count; 
+    for (int i = var_end - 1; i >= new_start; --i) {
+      Var var = p->var_arr[i];
+      Parser_add_node_output(p, new_scope, var.node);
+    }
+    scope = p->node_arr[scope].value.scope.prev_scope;
+  }
+  return ret;
+}
+
+void Parser_create_phi_nodes(Parser *p, uint16_t copy_start, NodeId ctrl, NodeId new_scope) {
+  NodeId scope = p->scope;
+  while (scope) {
+    assert(new_scope);
+    uint16_t var_count = p->node_arr[scope].value.scope.var_count;
+    uint16_t var_start = p->node_arr[scope].value.scope.var_start;
+    uint16_t var_end = var_start + var_count;
+    for (int i = var_end - 1; i >= var_start; --i) {
+      NodeId lnode = p->var_arr[i].node;
+      NodeId rnode = p->var_arr[i + copy_start].node;
+      if (lnode == rnode) continue;
+      NodeId phi = Parser_create_node(p, (Node){
+        .tag = NODE_PHI,
+        .value.phi.ctrl = ctrl,
+        .value.phi.left = lnode,
+        .value.phi.right = rnode,
+      });
+      Parser_add_node_output(p, phi, ctrl);
+      Parser_add_node_output(p, phi, lnode);
+      Parser_add_node_output(p, phi, rnode);
+
+      printf("left: %d\n", p->node_arr[lnode].value.i64);
+      printf("right: %d\n", p->node_arr[rnode].value.i64);
+      LinkId link = p->node_arr[lnode].outputs;
+
+      // TOOD: why it's not an input of scope?
+      Parser_remove_output_node(p, scope, lnode);
+      Parser_remove_output_node(p, new_scope, rnode);
+      Parser_add_node_output(p, scope, phi);
+      p->var_arr[i].node = phi;
+    }
+    scope = p->node_arr[scope].value.scope.prev_scope;
+    // Parser_remove_node(p, new_scope);
+    new_scope = p->node_arr[new_scope].value.scope.prev_scope;
+  }
 }
 
 Token Parser_expect_token(Parser *p, TokenTag tag) {
@@ -349,7 +443,94 @@ NodeId Parser_parse_statement(Parser *p) {
   NodeId node = 0, value = 0;
   Token tok = p->token_arr[p->pos++];
   switch (tok.tag) {
+    case TOK_IF:
+      // duplicate the scope
+      Parser_expect_token(p, TOK_LPAREN);
+      NodeId cond = Parser_parse_expression(p);
+      Parser_expect_token(p, TOK_RPAREN);
+      NodeId ctrl = Parser_resolve_ctrl(p);
+      node = Parser_create_node(p, (Node){
+        .tag = NODE_IF,
+        .value.if_.ctrl = ctrl,
+        .value.if_.cond = cond,
+      });
+      NodeId then_block = Parser_create_node(p, (Node){
+        .tag = NODE_PROJ,
+        .value.proj.select = 0,
+        .value.proj.ctrl = node,
+      });
+      NodeId else_block = Parser_create_node(p, (Node){
+        .tag = NODE_PROJ,
+        .value.proj.select = 1,
+        .value.proj.ctrl = node,
+      });
+      NodeId region = Parser_create_node(p, (Node){
+        .tag = NODE_REGION,
+      });
+      Parser_add_node_output(p, node, ctrl);
+      Parser_add_node_output(p, node, cond);
+      // TODO: resolve the ctrl nodes instead of adding them manually
+      Parser_add_node_output(p, then_block, node);
+      Parser_add_node_output(p, else_block, node);
+      Parser_update_ctrl(p, node);
+
+      // TODO: We don't need a copy of start and len, only node
+      uint16_t right_start = p->var_len;
+      uint16_t left_start = p->var_offset;
+      uint16_t var_len = right_start - left_start;
+      assert((p->var_len += var_len) < MAX_VAR_DEPTH);
+      memcpy(&p->var_arr[right_start], &p->var_arr[left_start], var_len * sizeof(Var));
+      NodeId new_scope = Parser_duplicate_scopes(p, right_start);
+      NodeId prev_scope = p->scope;
+
+      // Then block
+      p->scope = new_scope;
+      p->var_offset = right_start;
+      Parser_push_scope(p);
+      Parser_update_ctrl(p, then_block);
+      Parser_parse_statement(p);
+      then_block = Parser_resolve_ctrl(p);
+      p->node_arr[region].value.region.left_block = then_block;
+      Parser_add_node_output(p, region, then_block);
+      Parser_pop_scope(p);
+      p->scope = prev_scope;
+      p->var_offset = left_start;
+
+      // Else block
+      if (p->token_arr[p->pos].tag == TOK_ELSE) {
+        p->pos++;
+        Parser_push_scope(p);
+        Parser_update_ctrl(p, else_block);
+        Parser_parse_statement(p);
+        else_block = Parser_resolve_ctrl(p);
+        Parser_pop_scope(p);
+      }
+      p->node_arr[region].value.region.right_block = else_block;
+      Parser_add_node_output(p, region, else_block);
+
+      p->node_arr[p->scope].value.scope.ctrl = region;
+      Parser_create_phi_nodes(p, right_start, region, new_scope);
+      p->var_len = right_start;
+      Parser_update_ctrl(p, region);
+      break;
     case TOK_IDENT:
+      // TODO: add debug flag
+      if (tok.len == GRAPH_BUILTIN_NAME.len &&
+          !strncmp(GRAPH_BUILTIN_NAME.ptr, &p->source[tok.start], tok.len)) {
+        output_graphviz_file(GRAPH_FILENAME, p);
+        Parser_expect_token(p, TOK_LPAREN);
+        Parser_expect_token(p, TOK_RPAREN);
+        Parser_expect_token(p, TOK_SEMICOLON);
+        break;
+      }
+      if (tok.len == PRINT_AST_BUILTIN_NAME.len &&
+          !strncmp(PRINT_AST_BUILTIN_NAME.ptr, &p->source[tok.start], tok.len)) {
+        print_nodes(p);
+        Parser_expect_token(p, TOK_LPAREN);
+        Parser_expect_token(p, TOK_RPAREN);
+        Parser_expect_token(p, TOK_SEMICOLON);
+        break;
+      }
       Parser_expect_token(p, TOK_EQ);
       value = Parser_parse_expression(p);
       Parser_update_var(p, tok.start, tok.len, value);
@@ -368,13 +549,16 @@ NodeId Parser_parse_statement(Parser *p) {
     case TOK_RETURN:
       value = Parser_parse_expression(p);
       Parser_expect_token(p, TOK_SEMICOLON);
+      ctrl = Parser_resolve_ctrl(p);
       node = Parser_create_node(p, (Node){
         .tag = NODE_RETURN,
-        .value.ret.predecessor = START_NODE,
+        .value.ret.predecessor = ctrl,
         .value.ret.value = value,
       });
-      Parser_add_node_output(p, node, START_NODE);
+      Parser_add_node_output(p, node, ctrl);
       Parser_add_node_output(p, node, value);
+      Parser_add_node_output(p, STOP_NODE, node);
+      Parser_update_ctrl(p, 0);
       break;
     default: report_error(p->source, tok.start, tok.len,
           "Expected statement, got `%s`", TOK_NAMES[tok.tag]);
@@ -384,6 +568,7 @@ NodeId Parser_parse_statement(Parser *p) {
 
 NodeId Parser_parse_top_level(Parser *p) {
   Parser_push_scope(p);
+  p->node_arr[p->scope].value.scope.ctrl = START_NODE;
   NodeId node = 0;
   while (p->token_arr[p->pos].tag != TOK_NONE) {
     NodeId elem = Parser_parse_statement(p);
@@ -397,10 +582,11 @@ NodeId parse(const char *source, const Token *tokens, Parser *p) {
   *p = (Parser){
     .source = source,
     .token_arr = tokens,
-    .node_len = 1, // skip start node
+    .node_len = 3, // null node, start node, stop node
     .link_len = 1, // space for null link
   };
   p->node_arr[START_NODE] = (Node){ .tag = NODE_START };
+  p->node_arr[STOP_NODE] = (Node){ .tag = NODE_STOP };
 
   Parser_parse_top_level(p);
 }
@@ -411,15 +597,12 @@ void print_nodes(const Parser *p) {
     if (!node.tag) continue;
     printf("% 2d %s", i, NODE_NAME[node.tag]);
     switch (node.tag) {
+      case NODE_PROJ:
+        printf(" %d", node.value.proj.select);
+        break;
       case NODE_CONSTANT:
         printf(" %d", node.value.i64);
-        // printf("%d", START_NODE);
         break;
-      case NODE_RETURN:
-        printf(" %d, ", node.value.ret.predecessor);
-        printf("%d", node.value.ret.value);
-        break;
-      case NODE_START:
       default:
     }
     printf(" [");
@@ -431,5 +614,13 @@ void print_nodes(const Parser *p) {
       id = p->link_arr[id].next;
     }
     printf("]\n");
+    if (node.tag == NODE_SCOPE) {
+      for (int i = 0; i < node.value.scope.var_count; ++i) {
+        VarId id = node.value.scope.var_start + i;
+        Var var = p->var_arr[id];
+        printf("  %.*s: %d\n", var.len, &p->source[var.start], var.node);
+      }
+    }
   }
+  printf("\n");
 }
