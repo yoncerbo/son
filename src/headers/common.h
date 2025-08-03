@@ -37,7 +37,10 @@ typedef struct {
 #define LOG(fmt, ...) \
   printf("[LOG] %s " __FILE__ ":" STRINGIFY(__LINE__) " " fmt, __func__, ##__VA_ARGS__)
 
-void report_error(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
+// void print_source_span(const char *source, uint32_t start, uint16_t len);
+// void print_note(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
+// void print_error_message(const char *fmt, ...);
+// void print_error(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
 
 #endif
 

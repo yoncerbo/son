@@ -1,5 +1,6 @@
 #include "tokenizer.h"
 #include "common.h"
+#include "error_reporting.c"
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
@@ -65,7 +66,7 @@ void tokenize(const char *source, Token token_arr[MAX_TOKENS]) {
       continue;
     }
 
-    report_error(source, ch - source, 1, "Unkown character: '%c'", *ch);
+    print_error(source, ch - source, 1, "Unkown character: '%c'", *ch);
   }
   // EOF token
   assert(tokens_len < MAX_TOKENS);

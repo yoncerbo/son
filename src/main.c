@@ -7,7 +7,13 @@
 #include <fcntl.h>
 
 #include "graphviz.c"
-#include "common.c"
+// NOTE: I'm using unity build, so I don't need
+// header files and it's been a bother splitting
+// files into header and source and also navigating them
+// but it was necessary for clangd langauge server.
+// I'm gonna try this method and I'll see if it works
+// well enough with clangd.
+#include "error_reporting.c"
 #include "parser.h"
 #include "tokenizer.c"
 #include "parser.c"

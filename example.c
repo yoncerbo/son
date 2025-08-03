@@ -1,13 +1,5 @@
-int arg = 20;
 int a = 10;
 
-if (true) {
-  if (true) {
-    a = 2;
-  }
-  else {
-    a = 3;
-  }
-}
+int a = 20;
+
 return a;
-graph();

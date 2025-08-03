@@ -4,37 +4,20 @@
       "/nix/store/67x7pknz0qa2j16x02idf0x98lpcspah-gcc-wrapper-14.3.0/bin/gcc",
       "-c",
       "-std=c99",
-      "-O2",
-      "-g3",
       "-Wall",
       "-Wextra",
       "-I",
       "./src/headers",
+      "-I",
+      "./src",
+      "-O0",
+      "-g3",
       "-o",
-      "out/main",
+      "out/dev",
       "src/main.c"
     ],
     "directory": "/s/son",
     "file": "/s/son/src/main.c",
-    "output": "/s/son/out/main"
-  },
-  {
-    "arguments": [
-      "/nix/store/67x7pknz0qa2j16x02idf0x98lpcspah-gcc-wrapper-14.3.0/bin/gcc",
-      "-c",
-      "-std=c99",
-      "-O2",
-      "-g3",
-      "-Wall",
-      "-Wextra",
-      "-I",
-      "./src/headers",
-      "-o",
-      "out/test",
-      "src/test.c"
-    ],
-    "directory": "/s/son",
-    "file": "/s/son/src/test.c",
-    "output": "/s/son/out/test"
+    "output": "/s/son/out/dev"
   }
 ]

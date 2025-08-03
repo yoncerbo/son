@@ -144,8 +144,10 @@ VarId Parser_push_var(Parser *p, uint32_t start, uint16_t len, NodeId node) {
     Var entry = p->var_arr[var_start + i];
     if (entry.len != len) continue;
     if (strncmp(&p->source[entry.start], &p->source[start], len)) continue;
-    // TODO: show previous variable location and current
-    report_error(p->source, start, len, "Redefintion of `%.*s`", len, &p->source[start]);
+    print_error_message("Redefintion of `%.*s`", len, &p->source[start]);
+    print_note(p->source, entry.start, entry.len, "Variable first defined here");
+    print_note(p->source, start, len, "Redefinition here");
+    exit(1);
   }
   VarId id = p->var_len++;
   p->var_arr[id] = (Var){ start, len, node };
@@ -167,7 +169,8 @@ VarId Parser_resolve_var(Parser *p, uint32_t start, uint16_t len) {
     }
     scope = p->node_arr[scope].value.scope.prev_scope;
   }
-  report_error(p->source, start, len, "Variable `%.*s` not found", len, &p->source[start]);
+  print_error(p->source, start, len, "Variable `%.*s` not found", len, &p->source[start]);
+  exit(1);
 }
 
 void Parser_update_var(Parser *p, uint32_t start, uint16_t len, NodeId new_value) {
@@ -186,7 +189,8 @@ void Parser_update_var(Parser *p, uint32_t start, uint16_t len, NodeId new_value
     }
     scope = p->node_arr[scope].value.scope.prev_scope;
   }
-  report_error(p->source, start, len, "Variable `%.*s` not found", len, &p->source[start]);
+  print_error(p->source, start, len, "Variable `%.*s` not found", len, &p->source[start]);
+  exit(1);
 var_found:
   Parser_remove_output_node(p, scope, p->var_arr[id].node);
   Parser_add_node_output(p, scope, new_value);
@@ -254,8 +258,9 @@ void Parser_create_phi_nodes(Parser *p, uint16_t copy_start, NodeId ctrl, NodeId
 Token Parser_expect_token(Parser *p, TokenTag tag) {
   Token tok = p->token_arr[p->pos++];
   if (tok.tag == tag) return tok;
-  report_error(p->source, tok.start, tok.len,
+  print_error(p->source, tok.start, tok.len,
     "Expected `%s`, got `%s`", TOK_NAMES[tag], TOK_NAMES[tok.tag]);
+  exit(1);
 }
 
 NodeId Parser_create_node(Parser *p, Node node) {
@@ -312,8 +317,10 @@ NodeId Parser_parse_atom(Parser *p) {
       });
       // Parser_add_node_output(p, START_NODE, node);
       break;
-    default: report_error(p->source, tok.start, tok.len,
-      "Unexpected token while parsing atom: `%s`", TOK_NAMES[tok.tag]);
+    default:
+      print_error(p->source, tok.start, tok.len,
+        "Unexpected token while parsing atom: `%s`", TOK_NAMES[tok.tag]);
+      exit(1);
   }
   return node;
 }
@@ -429,8 +436,10 @@ NodeId Parser_parse_block(Parser *p) {
   NodeId node = 0;
   while (p->token_arr[p->pos].tag != TOK_RBRACE) {
     Token tok = p->token_arr[p->pos];
-    if (!tok.tag) report_error(p->source, start.start, start.len,
-        "No matching `}` found before EOF");
+    if (!tok.tag) {
+      print_error(p->source, start.start, start.len, "No matching `}` found before EOF");
+      exit(1);
+    }
     NodeId elem = Parser_parse_statement(p);
     if (elem) node = elem;
   }
@@ -560,8 +569,10 @@ NodeId Parser_parse_statement(Parser *p) {
       Parser_add_node_output(p, STOP_NODE, node);
       Parser_update_ctrl(p, 0);
       break;
-    default: report_error(p->source, tok.start, tok.len,
-          "Expected statement, got `%s`", TOK_NAMES[tok.tag]);
+    default: 
+      print_error(p->source, tok.start, tok.len,
+        "Expected statement, got `%s`", TOK_NAMES[tok.tag]);
+      exit(1);
   }
   return node;
 }

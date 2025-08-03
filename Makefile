@@ -1,14 +1,16 @@
-RELEASE_FLAGS = -std=c99 -O2 -Wall -Wextra
-DEV_FLAGS = -std=c99 -O0 -g3 -Wall -Wextra
+RELEASE_FLAGS = -O2
+DEV_FLAGS = -O0 -g3
+TEST_FLAGS = -O0 -g3
+CFLAGS = -std=c99 -Wall -Wextra -I ./src/headers -I ./src
 file = example.c
 
 build-release:
 	mkdir -p out
-	gcc ${RELEASE_FLAGS} -o out/release src/main.c -I ./src/headers
+	gcc ${CFLAGS} ${RELEASE_FLAGS} -o out/release src/main.c
 
 build-dev:
 	mkdir -p out
-	gcc ${DEV_FLAGS} -o out/dev src/main.c -I ./src/headers
+	gcc ${CFLAGS} ${DEV_FLAGS} -o out/dev src/main.c
 
 release: build-release
 	./out/release $(file)
@@ -18,7 +20,7 @@ run: build-dev
 
 build-test: src/test.c
 	mkdir -p out
-	gcc ${CFLAGS} -o out/test src/test.c -I ./src/headers
+	gcc ${TEST_FLAGS} ${CFLAGS} -o out/test src/test.c
 
 graph: run
 	dot -Tpng out/graph.dot -o out/graph.png
