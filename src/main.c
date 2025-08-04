@@ -9,6 +9,10 @@
 #include "graphviz.c"
 #include "fs.c"
 
+#include "parser_nodes.c"
+#include "parser_expressions.c"
+#include "parser_statements.c"
+#include "parser_vars.c"
 #include "parser.h"
 #include "tokenizer.c"
 #include "parser.c"

@@ -2,96 +2,9 @@
 #define INCLUDE_PARSER
 
 #include "tokenizer.h"
+#include "nodes.h"
 #include <stdint.h>
 #include <stdbool.h>
-
-typedef uint16_t NodeId;
-typedef uint16_t LinkId;
-typedef uint16_t VarId;
-
-const char *GRAPH_FILENAME = "out/graph.dot";
-
-typedef enum {
-  TYPE_BOT, // ALL, empty type, default
-  TYPE_TOP, // ANY
-  TYPE_INT,
-  TYPE_INT_BOT,
-  TYPE_INT_TOP,
-  TYPE_TUPLE,
-} TypeTag;
-
-// NOTE: for now a linked list, as
-// I don't really know what the requirements
-// are gonna be.
-// If we won't need to edit it that much
-// flat array will do fine
-// And we're wasting quite a bit of space with
-// this approach. If'm gonna decide
-// to keep it a list, then I'm gonna use blocks
-typedef struct {
-  LinkId next;
-  NodeId node;
-} Link;
-
-typedef enum {
-  NODE_NONE,
-
-  NODE_SCOPE,
-
-  // Control nodes
-  NODE_START,
-  NODE_STOP,
-  NODE_RETURN, // in: cnode predecessor, dnode value
-  NODE_REGION,
-  NODE_IF,
-  NODE_PROJ,
-
-#define DATA_NODES_START NODE_PHI
-  // Data nodes
-  NODE_PHI,
-  NODE_CONSTANT, // in: start node
-#define NODE_BINARY_START NODE_ADD
-  NODE_ADD,
-  NODE_SUB,
-  NODE_MUL,
-  NODE_DIV,
-  NODE_MINUS,
-  NODE_NOT,
-  NODE_EQ,
-  NODE_NE,
-  NODE_LT,
-  NODE_LE,
-  NODE_GT,
-  NODE_GE,
-#define NODE_BINARY_COUNT (NODE_COUNT - NODE_ADD)
-  NODE_COUNT
-} NodeTag;
-
-const char *NODE_NAME[] = {
-  [NODE_NONE] = "none",
-  [NODE_SCOPE] = "scope",
-  [NODE_START] = "start",
-  [NODE_RETURN] = "return",
-  [NODE_CONSTANT] = "const",
-  [NODE_ADD] = "add",
-  [NODE_SUB] = "sub",
-  [NODE_MUL] = "mul",
-  [NODE_DIV] = "div",
-  [NODE_MINUS] = "minus",
-  [NODE_NOT] = "not",
-  [NODE_REGION] = "region",
-  [NODE_IF] = "if",
-  [NODE_PHI] = "phi",
-  [NODE_PROJ] = "proj",
-  [NODE_EQ] = "eq",
-  [NODE_NE] = "ne",
-  [NODE_GT] = "gt",
-  [NODE_GE] = "ge",
-  [NODE_LT] = "lt",
-  [NODE_LE] = "le",
-  [NODE_NOT] = "not",
-  [NODE_STOP] = "stop",
-};
 
 typedef struct {
   uint32_t start;
@@ -99,61 +12,10 @@ typedef struct {
   NodeId node;
 } Var;
 
-typedef union {
-  int64_t i64;
-  bool boolean;
-  // Is it necessary? Can't we just use inputs?
-  struct NodeReturn {
-    NodeId predecessor;
-    NodeId value;
-  } ret;
-  struct NodeUnary {
-    NodeId node;
-  } unary;
-  struct NodeBinary {
-    NodeId left;
-    NodeId right;
-  } binary;
-  struct NodeScope {
-    VarId var_start;
-    uint16_t var_count;
-    NodeId prev_scope;
-    NodeId ctrl;
-  } scope;
-  struct NodeIf {
-    NodeId ctrl;
-    NodeId cond;
-  } if_;
-  struct NodeBlock {
-    NodeId next_block;
-  } block;
-  struct NodeProj {
-    uint16_t select;
-    NodeId ctrl;
-  } proj;
-  struct NodeRegion {
-    NodeId left_block;
-    NodeId right_block;
-  } region;
-  struct NodePhi {
-    NodeId ctrl;
-    NodeId left;
-    NodeId right;
-  } phi;
-} NodeValue;
-
 typedef struct {
   TypeTag tag;
   uint16_t elem_start;
 } Type;
-
-typedef struct {
-  NodeTag tag;
-  NodeValue value;
-  LinkId outputs;
-  NodeId next_sibling; // used in blocks
-  TypeTag type;
-} Node;
 
 typedef struct {
 #define NULL_NODE ((NodeId)0)
@@ -182,7 +44,41 @@ typedef struct {
   NodeId scope;
 } Parser;
 
+// parser.c
 NodeId parse(const char *source, const Token *tokens, Parser *p);
 void print_nodes(const Parser *p);
+Token Parser_expect_token(Parser *p, TokenTag tag);
+
+// parser_nodes.c
+void Parser_add_node_output(Parser *p, NodeId user, NodeId used);
+void Parser_remove_node(Parser *p, NodeId id);
+void Parser_remove_output_node(Parser *p, NodeId user, NodeId used);
+NodeId Parser_create_node(Parser *p, Node node);
+NodeId Parser_create_constant(Parser *p, int64_t value);
+NodeId Parser_create_unary_node(Parser *p, NodeTag op, NodeId inner);
+NodeId Parser_create_binary_node(Parser *p, NodeTag op, NodeId left, NodeId right);
+NodeId Parser_create_proj_node(Parser *p, NodeId ctrl, uint16_t select);
+NodeId Parser_create_if_node(Parser *p, NodeId cond);
+NodeId Parser_create_region_node(Parser *p, NodeId left, NodeId right);
+NodeId Parser_create_return_node(Parser *p, NodeId value);
+NodeId Parser_create_phi_node(Parser *p, NodeId region, NodeId left, NodeId right);
+
+// parser_vars.c
+VarId Parser_resolve_var(Parser *p, uint32_t start, uint16_t len);
+VarId Parser_push_var(Parser *p, uint32_t start, uint16_t len, NodeId node);
+NodeId Parser_duplicate_scopes(Parser *p, uint16_t offset);
+void Parser_create_phi_nodes(Parser *p, uint16_t copy_start, NodeId ctrl, NodeId new_scope);
+void Parser_update_var(Parser *p, uint32_t start, uint16_t len, NodeId new_value);
+void Parser_pop_scope(Parser *p);
+void Parser_push_scope(Parser *p);
+NodeId Parser_resolve_ctrl(Parser *p);
+void Parser_update_ctrl(Parser *p, NodeId new_ctrl);
+
+// parser_expressions.c
+NodeId Parser_parse_expression(Parser *p);
+
+// parser_statements.c
+NodeId Parser_parse_statement(Parser *p);
+NodeId Parser_parse_top_level(Parser *p);
 
 #endif // !INCLUDE_NODES
