@@ -478,7 +478,6 @@ NodeId Parser_parse_statement(Parser *p) {
       });
       Parser_add_node_output(p, node, ctrl);
       Parser_add_node_output(p, node, cond);
-      // TODO: resolve the ctrl nodes instead of adding them manually
       Parser_add_node_output(p, then_block, node);
       Parser_add_node_output(p, else_block, node);
       Parser_update_ctrl(p, node);

@@ -37,10 +37,19 @@ typedef struct {
 #define LOG(fmt, ...) \
   printf("[LOG] %s " __FILE__ ":" STRINGIFY(__LINE__) " " fmt, __func__, ##__VA_ARGS__)
 
-// void print_source_span(const char *source, uint32_t start, uint16_t len);
-// void print_note(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
-// void print_error_message(const char *fmt, ...);
-// void print_error(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
+
+// error_reporting.c
+void print_source_span(const char *source, uint32_t start, uint16_t len);
+void print_note(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
+void print_error_message(const char *fmt, ...);
+void print_error(const char *source, uint32_t start, uint16_t len, const char *fmt, ...);
+
+// fs.c
+const char *map_file_readonly(const char *filename);
+
+// graphviz.c
+#include "parser.h"
+void output_graphviz_file(const char *filename, const Parser *p);
 
 #endif
 

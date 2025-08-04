@@ -1,10 +1,50 @@
 #include "tokenizer.h"
 #include "common.h"
-#include "error_reporting.c"
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+
+TokenTag TOK_LOOKUP[256] = {
+  [';'] = TOK_SEMICOLON,
+  ['+'] = TOK_PLUS,
+  ['-'] = TOK_MINUS,
+  ['*'] = TOK_STAR,
+  ['/'] = TOK_SLASH,
+  ['{'] = TOK_LBRACE,
+  ['}'] = TOK_RBRACE,
+  ['='] = TOK_EQ,
+  ['('] = TOK_LPAREN,
+  [')'] = TOK_RPAREN,
+  ['!'] = TOK_BANG,
+  ['<'] = TOK_LT,
+  ['>'] = TOK_GT,
+};
+
+typedef struct {
+  char ch;
+  TokenTag tag;
+} TokenOpt;
+
+TokenOpt TOK_SECOND_CHAR[TOK_TWO_CHAR_COUNT] = {
+  [TOK_EQ] = { '=', TOK_DEQ },
+  [TOK_BANG] = { '=', TOK_NE },
+  [TOK_LT] = { '=', TOK_LE },
+  [TOK_GT] = { '=', TOK_GE },
+};
+
+Str KEYWORDS[KEYWORDS_COUNT] = {
+  [TOK_RETURN - KEYWORDS_START] = STR("return"),
+  [TOK_INT - KEYWORDS_START] = STR("int"),
+  [TOK_TRUE - KEYWORDS_START] = STR("true"),
+  [TOK_FALSE - KEYWORDS_START] = STR("false"),
+  [TOK_IF - KEYWORDS_START] = STR("if"),
+  [TOK_ELSE - KEYWORDS_START] = STR("else"),
+};
+
+#define IS_NUMERIC(ch) ((ch) >= '0' && (ch) <= '9')
+#define IS_ALPHA(ch) \
+    (((ch) >= 'a' && (ch) <= 'z') || ((ch) >= 'A' && (ch) <= 'Z'))
 
 void tokenize(const char *source, Token token_arr[MAX_TOKENS]) {
   const char *ch = source;
@@ -65,7 +105,6 @@ void tokenize(const char *source, Token token_arr[MAX_TOKENS]) {
       token_arr[tokens_len++] = (Token){ tt, len, start - source };
       continue;
     }
-
     print_error(source, ch - source, 1, "Unkown character: '%c'", *ch);
   }
   // EOF token

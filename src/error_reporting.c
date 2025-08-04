@@ -1,6 +1,3 @@
-#ifndef INCLUDE_ERROR_REPORTING
-#define INCLUDE_ERROR_REPORTING
-
 #include "common.h"
 #include <stdarg.h>
 #include <stdint.h>
@@ -65,5 +62,3 @@ void print_error(const char *source, uint32_t start, uint16_t len, const char *f
   print_source_span(source, start, len);
   va_end(args);
 }
-
-#endif
